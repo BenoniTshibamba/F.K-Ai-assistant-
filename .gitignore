@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# Local data
+*.db
+data/
+uploads/
+*.log
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# Local AI
+.ollama/
+
+# v4 auth secret
+secret.key

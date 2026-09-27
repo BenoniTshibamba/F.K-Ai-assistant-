@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>F.K. — Personal AI</title>
+<style>
+:root{--bg:#090b10;--panel:#10141c;--panel2:#151a24;--line:#252c38;--text:#f4f7fb;--muted:#8f9aaa;--accent:#8b7cff;--accent2:#5ee7d0;--danger:#ff6b7a;--good:#5ee7a8}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 70% 0,#1a1830 0,#090b10 38%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+button,input,textarea,select{font:inherit}button{cursor:pointer}
+a{color:var(--accent2)}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#2a3140;border-radius:8px}
+
+/* ---------- Auth / account ---------- */
+.acctbtn{padding:7px 12px;border:1px solid var(--line);background:var(--panel2);color:#fff;border-radius:9px;font-size:12.5px}
+.acctbtn:hover{border-color:#4b5668}
+.field{margin:14px 0}
+.field label{display:block;color:#8e99aa;font-size:12px;margin-bottom:7px}
+.field input,.field select,.field textarea{width:100%;background:#0b0e14;color:#fff;border:1px solid var(--line);padding:11px;border-radius:9px}
+.field textarea{resize:vertical;min-height:70px}
+.btn{border:1px solid var(--line);background:var(--panel2);color:#fff;padding:11px;border-radius:10px;text-align:center;width:100%}
+.btn.primary{background:var(--accent);border-color:var(--accent)}
+.btn.danger{background:transparent;border-color:var(--danger);color:var(--danger)}
+.autherr{background:#2a1620;border:1px solid #4a2230;color:#ffb0be;padding:10px;border-radius:9px;font-size:13px;margin-top:12px;display:none}
+
+/* ---------- App shell ---------- */
+.app{display:grid;grid-template-columns:250px 1fr;height:100vh}
+.sidebar{border-right:1px solid var(--line);background:rgba(10,12,17,.92);padding:16px;display:flex;flex-direction:column;gap:14px;overflow:auto}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#3d8cff);display:grid;place-items:center;font-weight:900;flex:none}.brand b{display:block}.brand span{font-size:10px;color:var(--muted);letter-spacing:1.4px}
+.navsec{font-size:10px;color:#6f7a8a;letter-spacing:1.5px;margin:6px 2px 0}
+.nav{display:grid;gap:4px}
+.navbtn{padding:9px 10px;border:1px solid transparent;background:transparent;color:#b6bfcd;border-radius:9px;text-align:left;font-size:13.5px;display:flex;align-items:center;gap:8px}
+.navbtn:hover{background:#171c26}
+.navbtn.active{background:#17152a;color:#fff;border-color:var(--accent)}
+.new{border:1px solid var(--line);background:var(--panel2);color:#fff;padding:10px;border-radius:10px;text-align:left;font-size:13px}
+.convos{overflow:auto;max-height:180px}
+.conv{padding:8px 10px;border-radius:8px;color:#b6bfcd;font-size:12.5px;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.conv.active,.conv:hover{background:#171c26;color:#fff}
+.spacer{flex:1}
+.footerbrand{font-size:10px;color:#4b5566;text-align:center;letter-spacing:.5px;padding-top:6px;border-top:1px solid var(--line)}
+
+.main{display:flex;flex-direction:column;min-width:0;overflow:auto}
+.top{min-height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:rgba(10,12,17,.6);backdrop-filter:blur(12px)}
+.title{font-weight:700}
+.status{font-size:12px;color:var(--muted)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent2);margin-right:7px}
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.show{display:flex}
+.pad{padding:24px;max-width:1000px;width:100%;margin:0 auto}
+
+/* ---------- Chat ---------- */
+.chat{flex:1;overflow:auto;padding:34px max(24px,calc((100% - 900px)/2));scroll-behavior:smooth}
+.welcome{text-align:center;max-width:650px;margin:9vh auto}
+.orb{width:70px;height:70px;border-radius:22px;margin:auto auto 20px;background:radial-gradient(circle at 35% 30%,#fff, #9e91ff 16%,#5145bd 48%,#151229 70%);box-shadow:0 0 60px #665be344}
+.welcome h1{font-size:36px;margin:0 0 10px}
+.welcome p{color:var(--muted);line-height:1.6}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.chip{border:1px solid var(--line);padding:9px 12px;border-radius:999px;color:#aeb7c6;background:#10141b}
+.msg{display:flex;gap:12px;margin:20px 0}
+.avatar{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#171c26;color:#bfc8d7;flex:none;font-size:11px;font-weight:800}
+.msg.user .avatar{background:#262033;color:#c9beff}
+.bubble{max-width:760px;line-height:1.65;white-space:pre-wrap;color:#dfe5ee}
+.msg.user .bubble{background:#171c26;border:1px solid var(--line);padding:12px 14px;border-radius:15px}
+.composer{padding:14px 24px 18px;border-top:1px solid var(--line);background:rgba(9,11,16,.88)}
+.composebox{max-width:900px;margin:auto;display:flex;gap:8px;align-items:end;background:#11161e;border:1px solid var(--line);border-radius:16px;padding:8px}
+.composebox textarea{flex:1;resize:none;min-height:44px;max-height:140px;background:transparent;border:0;outline:0;color:#fff;padding:11px}
+.icon,.send{border:0;border-radius:12px;width:42px;height:42px;background:#1a202b;color:#b9c2d0}
+.send{background:var(--accent);color:white;font-weight:800}
+.tools{max-width:900px;margin:8px auto 0;display:flex;gap:14px;align-items:center;color:#687384;font-size:11.5px;flex-wrap:wrap}
+.tools label{cursor:pointer;display:flex;align-items:center;gap:5px}
+.badge{border:1px solid var(--line);padding:5px 8px;border-radius:7px}
+.provider{display:flex;gap:6px}
+.provider button{padding:6px 10px;border-radius:8px;background:transparent;border:1px solid var(--line);color:var(--muted);font-size:11.5px}
+.provider button.active{color:#fff;border-color:var(--accent);background:#17152a}
+
+/* ---------- Generic cards / grids ---------- */
+h2.pagetitle{margin:0 0 4px}
+p.pagesub{color:var(--muted);margin:0 0 22px;font-size:13.5px}
+.grid{display:grid;gap:14px}
+.grid.cols-2{grid-template-columns:1fr 1fr}
+.grid.cols-3{grid-template-columns:1fr 1fr 1fr}
+.grid.cols-4{grid-template-columns:repeat(4,1fr)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h3{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.card .big{font-size:26px;font-weight:800}
+.list-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid #1d232d;font-size:13.5px}
+.list-row:last-child{border-bottom:0}
+.pill{padding:3px 9px;border-radius:999px;font-size:11px;border:1px solid var(--line)}
+.pill.high{color:var(--danger);border-color:var(--danger)}
+.pill.medium{color:#e8c15a;border-color:#e8c15a}
+.pill.low{color:var(--good);border-color:var(--good)}
+.iconbtn{background:none;border:0;color:var(--muted);font-size:15px}
+.iconbtn:hover{color:#fff}
+.row{display:flex;gap:8px}
+.row.wrap{flex-wrap:wrap}
+.mini{padding:8px 10px;font-size:13px;border-radius:8px}
+.tabbar{display:flex;gap:6px;margin-bottom:18px;flex-wrap:wrap}
+.tabbtn{padding:8px 14px;border-radius:9px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:13px}
+.tabbtn.active{color:#fff;background:#17152a;border-color:var(--accent)}
+.tabpane{display:none}
+.tabpane.show{display:block}
+.disclaimer{background:#211a0d;border:1px solid #4a3a17;color:#e7c37f;padding:12px 14px;border-radius:10px;font-size:12.5px;line-height:1.5;margin-bottom:18px}
+.lesson{margin-bottom:10px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lesson summary{padding:13px 16px;cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;background:var(--panel2)}
+.lesson summary::-webkit-details-marker{display:none}
+.lesson summary .mins{color:var(--muted);font-weight:400;font-size:12px}
+.lesson .body{padding:14px 16px;color:#d7dee8;line-height:1.7;font-size:13.8px;white-space:pre-wrap}
+.videocard{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px;border:1px solid var(--line);border-radius:12px;margin-bottom:10px}
+.videocard b{display:block}
+.videocard span{color:var(--muted);font-size:12.5px;line-height:1.5}
+.quotecard{border:1px solid var(--line);border-radius:12px;padding:14px;min-width:150px}
+.quotecard .sym{font-weight:800}
+.up{color:var(--good)}.down{color:var(--danger)}
+input,textarea,select{color:#fff}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid var(--line)}
+.table td{padding:8px;border-bottom:1px solid #1d232d}
+.empty{color:var(--muted);font-size:13px;padding:20px 0;text-align:center}
+.drawer{position:fixed;right:18px;top:76px;width:360px;max-height:85vh;overflow:auto;background:#10141c;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 20px 70px #0008;display:none;z-index:10}
+.drawer.show{display:block}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#171c26;border:1px solid var(--line);padding:10px 16px;border-radius:10px;font-size:13px;z-index:20;display:none}
+@media(max-width:820px){.app{grid-template-columns:1fr}.sidebar{display:none}.grid.cols-2,.grid.cols-3{grid-template-columns:1fr}.formgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- ================= BOOT / CONNECTION SCREEN ================= -->
+<div id="bootLoading" style="min-height:100vh;display:grid;place-items:center;color:var(--muted);font-size:14px;text-align:center;padding:20px">
+  Starting F.K. …
+</div>
+
+<!-- ================= MAIN APP ================= -->
+<div class="app" id="appRoot" style="display:none">
+<aside class="sidebar">
+  <div class="brand"><div class="logo">FK</div><div><b id="brandName">F.K.</b><span>PERSONAL AI</span></div></div>
+  <button class="new" onclick="newChat()">＋ New conversation</button>
+
+  <div class="nav">
+    <button class="navbtn active" data-view="chat" onclick="showView('chat')">💬 Chat</button>
+    <button class="navbtn" data-view="dashboard" onclick="showView('dashboard')">📊 Dashboard</button>
+    <button class="navbtn" data-view="tasks" onclick="showView('tasks')">✅ Tasks</button>
+    <button class="navbtn" data-view="kb" onclick="showView('kb')">📚 Knowledge base</button>
+    <button class="navbtn" data-view="trading" onclick="showView('trading')">📈 Trading</button>
+    <button class="navbtn" data-view="settings" onclick="showView('settings')">⚙ Settings</button>
+  </div>
+
+  <div class="navsec">CONVERSATIONS</div>
+  <div id="convos" class="convos"></div>
+
+  <div class="spacer"></div>
+  <button class="new" onclick="exportChat()">⇩ Export conversation</button>
+  <div class="footerbrand">BUILT WITH LOVE AND CAFFEINE BY BB24</div>
+</aside>
+
+<main class="main">
+  <header class="top">
+    <div class="title" id="viewTitle">F.K. Assistant</div>
+    <div class="row" style="align-items:center;gap:14px">
+      <div class="status"><span class="dot"></span><span id="status">Checking connection…</span></div>
+      <button class="acctbtn" id="accountBtn" onclick="openAccountDrawer()">👤 Guest</button>
+    </div>
+  </header>
+
+  <!-- ---- CHAT VIEW ---- -->
+  <section id="view-chat" class="view show">
+    <section id="chat" class="chat">
+      <div id="welcome" class="welcome">
+        <div class="orb"></div><h1>How can I help?</h1>
+        <p>Talk to F.K., ask questions, work with documents, save useful memories, manage tasks, or explore the Trading section.</p>
+        <div class="chips">
+          <button class="chip" onclick="quick('Help me plan my day')">Plan my day</button>
+          <button class="chip" onclick="quick('Explain something to me')">Explain something</button>
+          <button class="chip" onclick="quick('Teach me a trading concept')">Teach me trading</button>
+        </div>
+      </div>
+    </section>
+    <div class="composer">
+      <div class="composebox">
+        <button class="icon" onclick="voice()" title="Voice input">●</button>
+        <textarea id="input" placeholder="Message F.K. …" onkeydown="key(event)"></textarea>
+        <button class="send" onclick="send()">↑</button>
+      </div>
+      <div class="tools">
+        <div class="provider">
+          <button id="ollamaBtn" class="active" onclick="setProvider('ollama')">◉ Ollama</button>
+          <button id="openaiBtn" onclick="setProvider('openai')">✦ ChatGPT</button>
+        </div>
+        <label><input id="web" type="checkbox"> Web search</label>
+        <label><input id="kb" type="checkbox" checked> Knowledge base</label>
+        <label><input id="tradingMode" type="checkbox"> Trading mode</label>
+        <span class="badge" id="providerBadge">Ollama · Local</span>
+        <label style="margin-left:auto">📎 <input id="file" type="file" accept=".pdf,.txt,.md,.csv" onchange="quickUpload()" style="display:none"> <span style="cursor:pointer" onclick="$('file').click()">Add document</span></label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- DASHBOARD VIEW ---- -->
+  <section id="view-dashboard" class="view">
+    <div class="pad">
+      <h2 class="pagetitle">Dashboard</h2>
+      <p class="pagesub">A quick snapshot of everything F.K. is keeping track of for you.</p>
+      <div class="grid cols-4" id="dashCards"></div>
+      <div class="card" style="margin-top:16px">
+        <h3>Upcoming tasks</h3>
+        <div id="dashTasks"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- TASKS VIEW ---- -->
+  <section id="view-tasks" class="view">
+    <div class="pad">
+      <h2 class="pagetitle">Tasks &amp; reminders</h2>
+      <p class="pagesub">Keep track of things you need to do — F.K. surfaces these on the dashboard too.</p>
+      <div class="card" style="margin-bottom:16px">
+        <div class="formgrid">
+          <input id="taskTitle" placeholder="Task title">
+          <input id="taskDue" type="datetime-local">
+          <select id="taskPriority"><option value="low">Low priority</option><option value="medium" selected>Medium priority</option><option value="high">High priority</option></select>
+          <input id="taskNotes" placeholder="Notes (optional)">
+        </div>
+        <button class="btn primary" style="margin-top:10px" onclick="addTask()">Add task</button>
+      </div>
+      <div class="tabbar">
+        <button class="tabbtn active" onclick="setTaskFilter('all')">All</button>
+        <button class="tabbtn" onclick="setTaskFilter('pending')">Pending</button>
+        <button class="tabbtn" onclick="setTaskFilter('done')">Done</button>
+      </div>
+      <div id="taskList" class="card"></div>
+    </div>
+  </section>
+
+  <!-- ---- KNOWLEDGE BASE VIEW ---- -->
+  <section id="view-kb" class="view">
+    <div class="pad">
+      <h2 class="pagetitle">Knowledge base</h2>
+      <p class="pagesub">Upload documents (PDF, TXT, MD, CSV). F.K. automatically pulls in the most relevant passages when you chat, if "Knowledge base" is checked.</p>
+      <div class="card" style="margin-bottom:16px">
+        <input id="kbFile" type="file" accept=".pdf,.txt,.md,.csv" onchange="uploadKb()">
+      </div>
+      <div id="kbList" class="card"></div>
+    </div>
+  </section>
+
+  <!-- ---- TRADING VIEW ---- -->
+  <section id="view-trading" class="view">
+    <div class="pad">
+      <h2 class="pagetitle">Trading</h2>
+      <p class="pagesub">A learning-focused corner of F.K.: structured lessons, curated videos, live market quotes, and a personal trading journal.</p>
+      <div class="disclaimer" id="tradingDisclaimer"></div>
+      <div class="tabbar">
+        <button class="tabbtn active" onclick="setTradingTab('lessons')">Lessons</button>
+        <button class="tabbtn" onclick="setTradingTab('videos')">Video resources</button>
+        <button class="tabbtn" onclick="setTradingTab('market')">Market watch</button>
+        <button class="tabbtn" onclick="setTradingTab('journal')">Trading journal</button>
+      </div>
+
+      <div id="tab-lessons" class="tabpane show"><div id="lessonsList"></div></div>
+
+      <div id="tab-videos" class="tabpane"><div id="videosList"></div></div>
+
+      <div id="tab-market" class="tabpane">
+        <div class="row" style="margin-bottom:14px">
+          <input id="watchSymbol" placeholder="Symbol e.g. AAPL, BTC-USD, EURUSD=X" style="flex:1;background:#0b0e14;border:1px solid var(--line);border-radius:9px;padding:10px;color:#fff">
+          <button class="btn primary mini" onclick="addWatch()">Add</button>
+          <button class="btn mini" onclick="loadWatchlist()">Refresh</button>
+        </div>
+        <div id="watchlist" class="grid cols-3"></div>
+      </div>
+
+      <div id="tab-journal" class="tabpane">
+        <div class="grid cols-3" id="journalStats" style="margin-bottom:16px"></div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="formgrid">
+            <input id="tradeSymbol" placeholder="Symbol">
+            <select id="tradeDirection"><option value="long">Long</option><option value="short">Short</option></select>
+            <input id="tradeEntryPrice" type="number" step="any" placeholder="Entry price">
+            <input id="tradeExitPrice" type="number" step="any" placeholder="Exit price (leave blank if open)">
+            <input id="tradeQty" type="number" step="any" placeholder="Quantity" value="1">
+            <input id="tradeEntryAt" type="datetime-local">
+            <input id="tradeNotes" placeholder="Notes / setup / reasoning" style="grid-column:1/3">
+          </div>
+          <button class="btn primary" style="margin-top:10px" onclick="addTrade()">Log trade</button>
+        </div>
+        <div style="overflow:auto">
+          <table class="table" id="tradeTable">
+            <thead><tr><th>Symbol</th><th>Dir</th><th>Entry</th><th>Exit</th><th>Qty</th><th>P&amp;L</th><th>Status</th><th></th></tr></thead>
+            <tbody id="tradeRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---- SETTINGS VIEW ---- -->
+  <section id="view-settings" class="view">
+    <div class="pad">
+      <h2 class="pagetitle">Settings</h2>
+      <p class="pagesub">Customize F.K.'s name, personality, and voice, manage long-term memory, and your account.</p>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>Personality &amp; identity</h3>
+        <div class="field"><label>Assistant name</label><input id="pAssistantName"></div>
+        <div class="field"><label>Personality preset</label>
+          <select id="pPreset">
+            <option value="professional">Professional — polished &amp; efficient</option>
+            <option value="friendly">Friendly — warm &amp; encouraging</option>
+            <option value="direct">Direct — terse &amp; blunt</option>
+            <option value="creative">Creative — expressive &amp; vivid</option>
+          </select>
+        </div>
+        <div class="field"><label>Custom instructions (optional, added on top of the preset)</label><textarea id="pCustom" placeholder="e.g. Always answer in French. Prefer bullet points."></textarea></div>
+        <button class="btn primary" onclick="saveProfile()">Save personality</button>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>Voice</h3>
+        <div class="field"><label>Browser voice</label><select id="pVoice"></select></div>
+        <div class="formgrid">
+          <div class="field"><label>Rate</label><input id="pRate" type="range" min="0.5" max="1.8" step="0.1"></div>
+          <div class="field"><label>Pitch</label><input id="pPitch" type="range" min="0.5" max="1.8" step="0.1"></div>
+        </div>
+        <div class="row">
+          <button class="btn mini" onclick="testVoice()">▶ Test voice</button>
+          <button class="btn mini" onclick="saveProfile()">Save voice</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h3>Long-term memory</h3>
+        <div class="row" style="margin-bottom:10px">
+          <input id="memoryInput" placeholder="e.g. I prefer concise answers" style="flex:1;background:#0b0e14;border:1px solid var(--line);border-radius:9px;padding:10px;color:#fff">
+          <select id="memoryImportance" style="width:120px"><option value="1">Low</option><option value="3" selected>Normal</option><option value="5">High</option></select>
+          <button class="btn primary mini" onclick="addMemory()">Add</button>
+        </div>
+        <div id="memories"></div>
+      </div>
+
+      <div class="card">
+        <h3>Account</h3>
+        <p style="color:var(--muted);font-size:13px">Signed in as <b id="accountUsername"></b></p>
+        <button class="btn primary" onclick="openAccountDrawer()">Manage account</button>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<!-- ================= ACCOUNT DRAWER (login is optional — guests work fully) ================= -->
+<div id="accountDrawer" class="drawer">
+  <h3>Account</h3>
+  <div id="acctGuestNote" style="color:var(--muted);font-size:12.5px;margin-bottom:14px">
+    You're using F.K. as a guest on this device — everything works and is saved locally, but only in this browser.
+    Set a username &amp; password below to keep this same account if you clear your browser data, or log into an
+    existing account.
+  </div>
+  <div class="tabbar">
+    <button class="tabbtn" id="acctTabLogin" onclick="setAcctTab('login')">Log in</button>
+    <button class="tabbtn" id="acctTabRegister" onclick="setAcctTab('register')">New account</button>
+    <button class="tabbtn" id="acctTabClaim" onclick="setAcctTab('claim')">Save this account</button>
+  </div>
+
+  <div id="acctpane-login" class="tabpane">
+    <div class="field"><label>Username</label><input id="loginUser" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="loginPass" type="password" autocomplete="current-password"></div>
+    <button class="btn primary" onclick="doLogin()">Log in</button>
+  </div>
+  <div id="acctpane-register" class="tabpane">
+    <div class="field"><label>Username</label><input id="regUser" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="regPass" type="password" autocomplete="new-password"></div>
+    <button class="btn primary" onclick="doRegister()">Create account</button>
+  </div>
+  <div id="acctpane-claim" class="tabpane">
+    <div class="field"><label>Username</label><input id="claimUser" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input id="claimPass" type="password" autocomplete="new-password"></div>
+    <button class="btn primary" onclick="doClaim()">Save my guest account</button>
+  </div>
+
+  <div class="autherr" id="acctErr"></div>
+  <div class="row" style="margin-top:14px">
+    <button class="navbtn" style="flex:1" onclick="closeAccountDrawer()">Close</button>
+    <button class="btn danger" id="logoutBtn" style="flex:1;width:auto" onclick="logout()">Log out</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $=id=>document.getElementById(id);
+let token=localStorage.getItem('fk_token')||null;
+let provider='ollama', conversationId=null, history=[], speaking=true, documentIds=[];
+let profile=null, taskFilter='all';
+
+/* ---------------- API helper ---------------- */
+async function api(url,opts={}){
+  opts.headers=Object.assign({},opts.headers,token?{'Authorization':'Bearer '+token}:{});
+  let r;
+  try{
+    r=await fetch(url,opts);
+  }catch(networkErr){
+    showConnError();
+    throw new Error("Can't reach the F.K. server. Make sure it's running and reload the page.");
+  }
+  if(r.status===401){
+    localStorage.removeItem('fk_token');
+    toast('Session expired — refreshing…');
+    setTimeout(()=>location.reload(),700);
+    throw new Error('Session expired');
+  }
+  if(!r.ok){let e=await r.json().catch(()=>({detail:'Request failed'}));throw new Error(e.detail||'Request failed')}
+  return r.json();
+}
+function toast(msg){const t=$('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600);}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+function showConnError(){
+  if($('appRoot').style.display==='none'||$('appRoot').style.display===''){
+    $('bootLoading').innerHTML='<div style="max-width:360px"><div style="font-size:15px;margin-bottom:10px;color:#fff">Can\'t reach the F.K. server</div>'
+      +'<div style="color:var(--muted);font-size:13px;margin-bottom:18px">Make sure the Python server (uvicorn) is running on this machine, then retry.</div>'
+      +'<button class="btn primary" style="width:auto;padding:10px 18px;margin:auto;display:block" onclick="location.reload()">Retry</button></div>';
+  }else{
+    toast("Can't reach the F.K. server — check it's still running.");
+  }
+}
+
+/* ---------------- Auth (optional — F.K. works as a guest by default) ---------------- */
+function openAccountDrawer(){
+  $('accountDrawer').classList.add('show');
+  const isGuest = !profile || profile.is_guest;
+  $('acctGuestNote').style.display = isGuest ? 'block' : 'none';
+  $('acctTabClaim').style.display = isGuest ? '' : 'none';
+  $('logoutBtn').style.display = isGuest ? 'none' : '';
+  setAcctTab(isGuest ? 'claim' : 'login');
+}
+function closeAccountDrawer(){ $('accountDrawer').classList.remove('show'); $('acctErr').style.display='none'; }
+function setAcctTab(name){
+  document.querySelectorAll('#accountDrawer .tabbtn').forEach(b=>b.classList.remove('active'));
+  const map={login:'acctTabLogin',register:'acctTabRegister',claim:'acctTabClaim'};
+  $(map[name]).classList.add('active');
+  document.querySelectorAll('#accountDrawer .tabpane').forEach(p=>p.classList.remove('show'));
+  $('acctpane-'+name).classList.add('show');
+  $('acctErr').style.display='none';
+}
+function showAcctErr(msg){ const el=$('acctErr'); el.textContent=msg; el.style.display='block'; }
+async function refreshProfile(){
+  profile=await api('/api/auth/me');
+  $('accountBtn').textContent = profile.is_guest ? '👤 Guest' : ('👤 '+profile.username);
+  $('brandName').textContent = profile.assistant_name||'F.K.';
+  $('accountUsername').textContent = profile.username + (profile.is_guest ? ' (guest)' : '');
+  $('pAssistantName').value=profile.assistant_name||'F.K.';
+  $('pPreset').value=profile.personality_preset||'professional';
+  $('pCustom').value=profile.personality_custom||'';
+  $('pRate').value=profile.voice_rate||1;
+  $('pPitch').value=profile.voice_pitch||1;
+  conversationId=null; history=[]; renderChat();
+  await loadConvos();
+}
+async function doLogin(){
+  const username=$('loginUser').value.trim(), password=$('loginPass').value;
+  if(!username||!password) return showAcctErr('Enter a username and password.');
+  try{
+    const data=await api('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    token=data.token; localStorage.setItem('fk_token',token);
+    closeAccountDrawer(); await refreshProfile(); toast('Logged in as '+data.username);
+  }catch(e){ showAcctErr(e.message) }
+}
+async function doRegister(){
+  const username=$('regUser').value.trim(), password=$('regPass').value;
+  if(!username||!password) return showAcctErr('Choose a username and password.');
+  try{
+    const data=await api('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    token=data.token; localStorage.setItem('fk_token',token);
+    closeAccountDrawer(); await refreshProfile(); toast('Account created — logged in as '+data.username);
+  }catch(e){ showAcctErr(e.message) }
+}
+async function doClaim(){
+  const username=$('claimUser').value.trim(), password=$('claimPass').value;
+  if(!username||!password) return showAcctErr('Choose a username and password.');
+  try{
+    const data=await api('/api/auth/claim',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});
+    closeAccountDrawer(); await refreshProfile(); toast('Saved — you can log in as '+data.username+' any time.');
+  }catch(e){ showAcctErr(e.message) }
+}
+async function logout(){
+  localStorage.removeItem('fk_token'); token=null; profile=null;
+  closeAccountDrawer();
+  $('appRoot').style.display='none';
+  $('bootLoading').style.display='grid'; $('bootLoading').textContent='Starting F.K. …';
+  await boot();
+}
+
+/* ---------------- Views / nav ---------------- */
+function showView(name){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('show'));
+  $('view-'+name).classList.add('show');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  const titles={chat:'F.K. Assistant',dashboard:'Dashboard',tasks:'Tasks & reminders',kb:'Knowledge base',trading:'Trading',settings:'Settings'};
+  $('viewTitle').textContent=titles[name]||'F.K. Assistant';
+  if(name==='dashboard')loadDashboard();
+  if(name==='tasks')loadTasks();
+  if(name==='kb')loadDocs();
+  if(name==='trading')loadTradingAcademy();
+  if(name==='settings'){loadMemories();loadVoices();}
+}
+
+/* ---------------- Boot: no login wall — F.K. starts as a local guest ---------------- */
+async function boot(){
+  if(!token){
+    try{
+      const g=await api('/api/auth/guest',{method:'POST'});
+      token=g.token; localStorage.setItem('fk_token',token);
+    }catch(e){ return; } // showConnError already triggered inside api()
+  }
+  try{
+    profile=await api('/api/auth/me');
+  }catch(e){
+    // stale/invalid token — drop it and start a fresh guest session
+    localStorage.removeItem('fk_token'); token=null;
+    try{
+      const g=await api('/api/auth/guest',{method:'POST'});
+      token=g.token; localStorage.setItem('fk_token',token);
+      profile=await api('/api/auth/me');
+    }catch(e2){ showConnError(); return; }
+  }
+  $('bootLoading').style.display='none';
+  $('appRoot').style.display='grid';
+  $('brandName').textContent=profile.assistant_name||'F.K.';
+  $('accountBtn').textContent = profile.is_guest ? '👤 Guest' : ('👤 '+profile.username);
+  $('accountUsername').textContent = profile.username + (profile.is_guest ? ' (guest)' : '');
+  $('pAssistantName').value=profile.assistant_name||'F.K.';
+  $('pPreset').value=profile.personality_preset||'professional';
+  $('pCustom').value=profile.personality_custom||'';
+  $('pRate').value=profile.voice_rate||1;
+  $('pPitch').value=profile.voice_pitch||1;
+  await loadConfig();
+  await loadConvos();
+  showView('chat');
+}
+async function loadConfig(){
+  try{let c=await api('/api/config');$('status').textContent=c.ollama.online?'Ollama online':(c.openai.configured?'OpenAI configured':'Offline / configure AI in .env');}
+  catch{$('status').textContent='Server unavailable'}
+}
+
+/* ---------------- Chat ---------------- */
+async function loadConvos(){
+  let rows=await api('/api/conversations');
+  $('convos').innerHTML=rows.map(x=>`<div class="conv ${x.id===conversationId?'active':''}" onclick="openChat('${x.id}')">${esc(x.title)}</div>`).join('');
+}
+async function openChat(id){conversationId=id;history=await api('/api/conversations/'+id+'/messages');renderChat();loadConvos()}
+async function newChat(){conversationId=null;history=[];documentIds=[];renderChat();loadConvos();showView('chat')}
+function renderChat(){
+  let box=$('chat');
+  if(!history.length){
+    box.innerHTML='<div id="welcome" class="welcome"><div class="orb"></div><h1>How can I help?</h1><p>Talk to F.K., ask questions, work with documents, save useful memories, manage tasks, or explore the Trading section.</p><div class="chips"><button class="chip" onclick="quick(\'Help me plan my day\')">Plan my day</button><button class="chip" onclick="quick(\'Explain something to me\')">Explain something</button><button class="chip" onclick="quick(\'Teach me a trading concept\')">Teach me trading</button></div></div>';
+    return;
+  }
+  box.innerHTML=history.map(m=>`<div class="msg ${m.role}"><div class="avatar">${m.role==='user'?'YOU':'FK'}</div><div class="bubble">${esc(m.content)}</div></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+function addMsg(role,text){history.push({role,content:text});renderChat()}
+async function send(){
+  let el=$('input'),msg=el.value.trim();
+  if(!msg)return;
+  el.value='';
+  addMsg('user',msg);
+  addMsg('assistant','F.K. is thinking…');
+  try{
+    let data=await api('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      conversation_id:conversationId,message:msg,provider,use_web:$('web').checked,use_memory:true,
+      use_kb:$('kb').checked,trading_mode:$('tradingMode').checked,document_ids:documentIds
+    })});
+    conversationId=data.conversation_id;
+    history[history.length-1].content=data.answer;
+    renderChat();loadConvos();
+    if(speaking)speak(data.answer);
+  }catch(e){history[history.length-1].content='Error: '+e.message;renderChat()}
+}
+function quick(x){$('input').value=x;send()}
+function key(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}}
+function setProvider(p){provider=p;$('ollamaBtn').classList.toggle('active',p==='ollama');$('openaiBtn').classList.toggle('active',p==='openai');$('providerBadge').textContent=p==='ollama'?'Ollama · Local':'ChatGPT · OpenAI';loadConfig()}
+function voice(){
+  let SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Speech recognition is not supported in this browser. Try Chrome or Edge.');return}
+  let r=new SR();r.lang='en-US';r.interimResults=false;
+  r.onresult=e=>{$('input').value=e.results[0][0].transcript;send()};
+  r.onerror=()=>toast('Voice input failed — check microphone permissions.');
+  r.start();
+}
+function speak(t){
+  if(!speaking||!('speechSynthesis' in window))return;
+  speechSynthesis.cancel();
+  let u=new SpeechSynthesisUtterance(t);
+  u.rate=parseFloat(profile?.voice_rate||1); u.pitch=parseFloat(profile?.voice_pitch||1);
+  if(profile?.voice_name){const v=speechSynthesis.getVoices().find(v=>v.name===profile.voice_name); if(v)u.voice=v;}
+  speechSynthesis.speak(u);
+}
+async function quickUpload(){
+  let f=$('file').files[0]; if(!f)return;
+  let fd=new FormData(); fd.append('file',f);
+  try{let x=await api('/api/documents',{method:'POST',body:fd});documentIds.push(x.id);toast(x.name+' added to knowledge base.');}
+  catch(e){toast(e.message)}
+  $('file').value='';
+}
+async function exportChat(){
+  if(!conversationId){toast('Start or open a conversation first.');return}
+  let data=await api('/api/export/'+conversationId);
+  let a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='fk-conversation.json'; a.click();
+}
+
+/* ---------------- Dashboard ---------------- */
+async function loadDashboard(){
+  const d=await api('/api/dashboard');
+  $('dashCards').innerHTML=`
+    <div class="card"><h3>Conversations</h3><div class="big">${d.conversations}</div></div>
+    <div class="card"><h3>Memories saved</h3><div class="big">${d.memories}</div></div>
+    <div class="card"><h3>Documents in KB</h3><div class="big">${d.documents}</div></div>
+    <div class="card"><h3>Open trades</h3><div class="big">${d.open_trades}</div></div>
+    <div class="card"><h3>Tasks pending</h3><div class="big">${d.tasks_pending}</div></div>
+    <div class="card"><h3>Tasks overdue</h3><div class="big" style="color:${d.tasks_overdue?'var(--danger)':'inherit'}">${d.tasks_overdue}</div></div>
+    <div class="card"><h3>Messages exchanged</h3><div class="big">${d.messages}</div></div>
+  `;
+  $('dashTasks').innerHTML = d.upcoming_tasks.length ? d.upcoming_tasks.map(t=>`
+    <div class="list-row"><span>${esc(t.title)}</span><span class="pill ${t.priority}">${t.due_at?new Date(t.due_at).toLocaleString():'no due date'}</span></div>
+  `).join('') : '<div class="empty">Nothing on the horizon — add a task to see it here.</div>';
+}
+
+/* ---------------- Tasks ---------------- */
+function setTaskFilter(f){taskFilter=f;document.querySelectorAll('#view-tasks .tabbtn').forEach(b=>b.classList.remove('active'));event.target.classList.add('active');loadTasks()}
+async function loadTasks(){
+  const status = taskFilter==='all' ? null : taskFilter;
+  const rows = await api('/api/tasks'+(status?('?status='+status):''));
+  $('taskList').innerHTML = rows.length ? rows.map(t=>`
+    <div class="list-row">
+      <div>
+        <div style="${t.status==='done'?'text-decoration:line-through;color:var(--muted)':''}"><b>${esc(t.title)}</b></div>
+        ${t.notes?`<div style="color:var(--muted);font-size:12px">${esc(t.notes)}</div>`:''}
+        <div style="color:var(--muted);font-size:11.5px">${t.due_at?new Date(t.due_at).toLocaleString():'No due date'}</div>
+      </div>
+      <div class="row">
+        <span class="pill ${t.priority}">${t.priority}</span>
+        <button class="iconbtn" title="${t.status==='done'?'Mark pending':'Mark done'}" onclick="toggleTask(${t.id},'${t.status}')">${t.status==='done'?'↺':'✓'}</button>
+        <button class="iconbtn" title="Delete" onclick="deleteTask(${t.id})">✕</button>
+      </div>
+    </div>
+  `).join('') : '<div class="empty">No tasks yet — add one above.</div>';
+}
+async function addTask(){
+  const title=$('taskTitle').value.trim(); if(!title){toast('Give the task a title.');return}
+  await api('/api/tasks',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    title, notes:$('taskNotes').value.trim(), due_at:$('taskDue').value||null, priority:$('taskPriority').value
+  })});
+  $('taskTitle').value='';$('taskNotes').value='';$('taskDue').value='';
+  loadTasks();
+}
+async function toggleTask(id,status){
+  await api('/api/tasks/'+id,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:status==='done'?'pending':'done'})});
+  loadTasks();
+}
+async function deleteTask(id){ await api('/api/tasks/'+id,{method:'DELETE'}); loadTasks(); }
+
+/* ---------------- Knowledge base ---------------- */
+async function loadDocs(){
+  const rows=await api('/api/documents');
+  $('kbList').innerHTML = rows.length ? rows.map(x=>`
+    <div class="list-row"><span>📄 ${esc(x.name)} <span style="color:var(--muted);font-size:11.5px">(${x.chunk_count} chunks)</span></span>
+    <button class="iconbtn" onclick="deleteDoc(${x.id})">✕</button></div>
+  `).join('') : '<div class="empty">No documents yet.</div>';
+}
+async function uploadKb(){
+  let f=$('kbFile').files[0]; if(!f)return;
+  let fd=new FormData(); fd.append('file',f);
+  try{ let x=await api('/api/documents',{method:'POST',body:fd}); toast(x.name+' added ('+x.chunks+' chunks).'); loadDocs(); }
+  catch(e){ toast(e.message) }
+  $('kbFile').value='';
+}
+async function deleteDoc(id){ await api('/api/documents/'+id,{method:'DELETE'}); loadDocs(); }
+
+/* ---------------- Trading ---------------- */
+let tradingLoaded=false;
+function setTradingTab(name){
+  document.querySelectorAll('#view-trading .tabbtn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.querySelectorAll('#view-trading .tabpane').forEach(p=>p.classList.remove('show'));
+  $('tab-'+name).classList.add('show');
+  if(name==='market')loadWatchlist();
+  if(name==='journal'){loadTrades();loadTradeStats();}
+}
+async function loadTradingAcademy(){
+  if(tradingLoaded)return; tradingLoaded=true;
+  const data=await api('/api/trading/academy');
+  $('tradingDisclaimer').textContent='⚠ '+data.disclaimer;
+  $('lessonsList').innerHTML = data.lessons.map(l=>`
+    <details class="lesson"><summary>${esc(l.title)} <span class="mins">${l.minutes} min</span></summary><div class="body">${esc(l.body)}</div></details>
+  `).join('');
+  $('videosList').innerHTML = data.videos.map(v=>`
+    <div class="videocard"><div><b>${esc(v.title)}</b><span>${esc(v.description)}</span></div>
+    <a class="btn mini" style="width:auto;padding:8px 14px" href="${v.url}" target="_blank" rel="noopener">Open ↗</a></div>
+  `).join('');
+}
+async function loadWatchlist(){
+  const rows=await api('/api/trading/watchlist');
+  $('watchlist').innerHTML = rows.length ? rows.map(q=>{
+    if(q.error) return `<div class="quotecard"><div class="sym">${esc(q.symbol)}</div><div style="color:var(--muted);font-size:12px">Unavailable right now</div><button class="iconbtn" onclick="removeWatch(${q.watchlist_id})">Remove</button></div>`;
+    const cls = (q.change||0) >= 0 ? 'up' : 'down';
+    const arrow = (q.change||0) >= 0 ? '▲' : '▼';
+    return `<div class="quotecard">
+      <div class="sym">${esc(q.symbol)}</div>
+      <div style="font-size:20px;font-weight:800">${q.price!=null?q.price.toFixed(2):'—'} <span style="font-size:12px;color:var(--muted)">${q.currency||''}</span></div>
+      <div class="${cls}">${arrow} ${q.change!=null?q.change.toFixed(2):'—'} (${q.change_percent!=null?q.change_percent.toFixed(2):'—'}%)</div>
+      <div style="color:var(--muted);font-size:11px;margin-top:4px">${q.exchange||''}</div>
+      <button class="iconbtn" style="margin-top:6px" onclick="removeWatch(${q.watchlist_id})">Remove</button>
+    </div>`;
+  }).join('') : '<div class="empty">Add a symbol above — try AAPL, BTC-USD, or EURUSD=X.</div>';
+}
+async function addWatch(){
+  const s=$('watchSymbol').value.trim(); if(!s){toast('Enter a symbol first.');return}
+  try{ await api('/api/trading/watchlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({symbol:s})}); $('watchSymbol').value=''; loadWatchlist(); }
+  catch(e){ toast(e.message) }
+}
+async function removeWatch(id){ await api('/api/trading/watchlist/'+id,{method:'DELETE'}); loadWatchlist(); }
+
+async function loadTradeStats(){
+  const s=await api('/api/trading/stats');
+  $('journalStats').innerHTML=`
+    <div class="card"><h3>Closed trades</h3><div class="big">${s.closed_trades}</div></div>
+    <div class="card"><h3>Win rate</h3><div class="big">${s.win_rate!=null?s.win_rate.toFixed(1)+'%':'—'}</div></div>
+    <div class="card"><h3>Total P&amp;L</h3><div class="big" style="color:${s.total_pnl>=0?'var(--good)':'var(--danger)'}">${s.total_pnl.toFixed(2)}</div></div>
+  `;
+}
+async function loadTrades(){
+  const rows=await api('/api/trading/trades');
+  $('tradeRows').innerHTML = rows.length ? rows.map(t=>`
+    <tr>
+      <td>${esc(t.symbol)}</td><td>${t.direction}</td><td>${t.entry_price}</td><td>${t.exit_price??'—'}</td><td>${t.quantity}</td>
+      <td style="color:${t.pnl==null?'inherit':(t.pnl>=0?'var(--good)':'var(--danger)')}">${t.pnl==null?'—':t.pnl.toFixed(2)}</td>
+      <td>${t.status}</td>
+      <td><button class="iconbtn" onclick="deleteTrade(${t.id})">✕</button></td>
+    </tr>
+  `).join('') : `<tr><td colspan="8" class="empty">No trades logged yet.</td></tr>`;
+}
+async function addTrade(){
+  const symbol=$('tradeSymbol').value.trim();
+  const entry=parseFloat($('tradeEntryPrice').value);
+  if(!symbol||isNaN(entry)){toast('Symbol and entry price are required.');return}
+  const exitVal=$('tradeExitPrice').value;
+  await api('/api/trading/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    symbol, direction:$('tradeDirection').value, entry_price:entry,
+    exit_price: exitVal? parseFloat(exitVal): null,
+    quantity: parseFloat($('tradeQty').value||'1'),
+    entry_at: $('tradeEntryAt').value || new Date().toISOString(),
+    notes: $('tradeNotes').value.trim()
+  })});
+  $('tradeSymbol').value='';$('tradeEntryPrice').value='';$('tradeExitPrice').value='';$('tradeNotes').value='';
+  loadTrades(); loadTradeStats();
+}
+async function deleteTrade(id){ await api('/api/trading/trades/'+id,{method:'DELETE'}); loadTrades(); loadTradeStats(); }
+
+/* ---------------- Settings: personality / voice / memory ---------------- */
+async function saveProfile(){
+  await api('/api/auth/me',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    assistant_name:$('pAssistantName').value.trim()||'F.K.',
+    personality_preset:$('pPreset').value,
+    personality_custom:$('pCustom').value,
+    voice_name:$('pVoice').value,
+    voice_rate:parseFloat($('pRate').value),
+    voice_pitch:parseFloat($('pPitch').value)
+  })});
+  profile=await api('/api/auth/me');
+  $('brandName').textContent=profile.assistant_name||'F.K.';
+  toast('Saved.');
+}
+function loadVoices(){
+  const populate=()=>{
+    const voices=speechSynthesis.getVoices();
+    $('pVoice').innerHTML='<option value="">Browser default</option>'+voices.map(v=>`<option value="${v.name}" ${profile?.voice_name===v.name?'selected':''}>${v.name} (${v.lang})</option>`).join('');
+  };
+  populate();
+  speechSynthesis.onvoiceschanged=populate;
+}
+function testVoice(){
+  const u=new SpeechSynthesisUtterance('Hi, this is how I sound.');
+  u.rate=parseFloat($('pRate').value); u.pitch=parseFloat($('pPitch').value);
+  const v=speechSynthesis.getVoices().find(v=>v.name===$('pVoice').value); if(v)u.voice=v;
+  speechSynthesis.speak(u);
+}
+async function loadMemories(){
+  let rows=await api('/api/memories');
+  $('memories').innerHTML = rows.length ? rows.map(x=>`
+    <div class="list-row"><span>${esc(x.content)} <span class="pill ${x.importance>=4?'high':(x.importance<=2?'low':'medium')}">${x.category}</span></span>
+    <button class="iconbtn" onclick="delMemory(${x.id})">✕</button></div>
+  `).join('') : '<div class="empty">No memories saved yet.</div>';
+}
+async function addMemory(){
+  let x=$('memoryInput').value.trim(); if(!x)return;
+  await api('/api/memories',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:x,importance:parseInt($('memoryImportance').value)})});
+  $('memoryInput').value=''; loadMemories();
+}
+async function delMemory(id){ await api('/api/memories/'+id,{method:'DELETE'}); loadMemories(); }
+
+boot();
+</script>
+</body>
+</html>
